@@ -1,7 +1,7 @@
 {
-  "name": "Coffee Shout",
-  "short_name": "Shout",
-  "description": "Track whose turn it is to shout coffee",
+  "name": "My Shout",
+  "short_name": "My Shout",
+  "description": "Who's shouting? Keep your friends close and your shouts closer.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#1a1a1a",
