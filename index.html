@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#1a1a1a" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Shout" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  <title>Coffee Shout</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #f5f4f0;
+      --surface: #ffffff;
+      --surface2: #f0ede8;
+      --text: #1a1a1a;
+      --text2: #6b6860;
+      --text3: #a09d98;
+      --border: rgba(0,0,0,0.1);
+      --border2: rgba(0,0,0,0.06);
+      --accent: #1a1a1a;
+      --accent-text: #ffffff;
+      --amber-bg: #fdf3e0;
+      --amber-text: #7a4f00;
+      --green-bg: #e8f5ec;
+      --green-text: #1a5c2a;
+      --radius: 14px;
+      --radius-sm: 8px;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #111110;
+        --surface: #1e1d1b;
+        --surface2: #2a2927;
+        --text: #f0ede8;
+        --text2: #9a9790;
+        --text3: #5a5855;
+        --border: rgba(255,255,255,0.1);
+        --border2: rgba(255,255,255,0.06);
+        --accent: #f0ede8;
+        --accent-text: #1a1a1a;
+        --amber-bg: #2e2200;
+        --amber-text: #f5c842;
+        --green-bg: #0d2e14;
+        --green-text: #5dd87a;
+      }
+    }
+
+    html, body {
+      height: 100%;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body {
+      display: flex;
+      flex-direction: column;
+      min-height: 100dvh;
+      padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+    }
+
+    .app {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      max-width: 480px;
+      margin: 0 auto;
+      width: 100%;
+      padding: 0 16px 24px;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px 0 16px;
+    }
+
+    .app-title {
+      font-size: 22px;
+      font-weight: 600;
+      letter-spacing: -0.5px;
+    }
+
+    .header-actions { display: flex; gap: 8px; }
+
+    .icon-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 16px;
+      color: var(--text2);
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .icon-btn:active { transform: scale(0.93); background: var(--surface2); }
+
+    .label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      color: var(--text3);
+      margin-bottom: 10px;
+    }
+
+    .card {
+      background: var(--surface);
+      border-radius: var(--radius);
+      border: 0.5px solid var(--border2);
+      overflow: hidden;
+      margin-bottom: 20px;
+    }
+
+    .person-row {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 16px;
+      border-bottom: 0.5px solid var(--border2);
+    }
+
+    .person-row:last-child { border-bottom: none; }
+
+    .avatar {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 15px;
+      font-weight: 600;
+      flex-shrink: 0;
+    }
+
+    .avatar-a { background: #e0eaff; color: #1a3a8f; }
+    .avatar-b { background: #d8f5e8; color: #0e4a26; }
+
+    @media (prefers-color-scheme: dark) {
+      .avatar-a { background: #1a2a50; color: #8eb4ff; }
+      .avatar-b { background: #0d2e1a; color: #5dd87a; }
+    }
+
+    .person-info { flex: 1; min-width: 0; }
+
+    .person-name {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .person-count {
+      font-size: 13px;
+      color: var(--text2);
+      margin-top: 2px;
+    }
+
+    .badge {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 20px;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .badge-next { background: var(--amber-bg); color: var(--amber-text); }
+    .badge-even { background: var(--green-bg); color: var(--green-text); }
+    .badge-last { background: var(--surface2); color: var(--text3); }
+
+    .log-row {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .log-btn {
+      flex: 1;
+      padding: 14px 12px;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      background: var(--surface);
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text);
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      transition: transform 0.1s;
+    }
+
+    .log-btn:active { transform: scale(0.96); background: var(--surface2); }
+
+    .log-btn.primary {
+      background: var(--accent);
+      color: var(--accent-text);
+      border-color: transparent;
+    }
+
+    .log-btn .btn-icon { font-size: 22px; }
+    .log-btn .btn-label { font-size: 13px; opacity: 0.8; }
+
+    .history-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 16px;
+      border-bottom: 0.5px solid var(--border2);
+      font-size: 14px;
+    }
+
+    .history-item:last-child { border-bottom: none; }
+
+    .history-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .dot-a { background: #5580ff; }
+    .dot-b { background: #2fba6a; }
+
+    .history-who { font-weight: 500; color: var(--text); }
+    .history-when { margin-left: auto; font-size: 12px; color: var(--text3); }
+
+    .empty { text-align: center; padding: 24px 16px; color: var(--text3); font-size: 14px; }
+
+    /* Setup screen */
+    .setup-wrap {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 0;
+      padding-bottom: 40px;
+    }
+
+    .setup-title {
+      font-size: 26px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      margin-bottom: 8px;
+    }
+
+    .setup-sub {
+      font-size: 15px;
+      color: var(--text2);
+      margin-bottom: 32px;
+      line-height: 1.5;
+    }
+
+    .input-group { margin-bottom: 12px; }
+
+    .input-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text3);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 6px;
+    }
+
+    .text-input {
+      width: 100%;
+      padding: 14px 16px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
+      font-size: 16px;
+      outline: none;
+    }
+
+    .text-input:focus { border-color: var(--accent); }
+
+    .primary-btn {
+      width: 100%;
+      padding: 16px;
+      border-radius: var(--radius);
+      border: none;
+      background: var(--accent);
+      color: var(--accent-text);
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 8px;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .primary-btn:active { opacity: 0.85; transform: scale(0.98); }
+
+    /* Undo toast */
+    .toast {
+      position: fixed;
+      bottom: calc(24px + env(safe-area-inset-bottom));
+      left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: var(--text);
+      color: var(--accent-text);
+      padding: 10px 20px;
+      border-radius: 24px;
+      font-size: 14px;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      transition: transform 0.25s ease;
+      z-index: 100;
+      white-space: nowrap;
+    }
+
+    .toast.show { transform: translateX(-50%) translateY(0); }
+
+    .toast-undo {
+      background: none;
+      border: none;
+      color: var(--amber-text);
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      padding: 0;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      .toast-undo { color: var(--amber-text); }
+    }
+
+    #setup-view, #main-view { display: none; }
+    #setup-view.active, #main-view.active { display: flex; flex-direction: column; flex: 1; }
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <!-- Setup -->
+  <div id="setup-view">
+    <div class="setup-wrap">
+      <div style="font-size:40px; margin-bottom:16px;">☕</div>
+      <h1 class="setup-title">Coffee Shout</h1>
+      <p class="setup-sub">Track whose turn it is to shout. Enter the two people in your coffee group.</p>
+      <div class="input-group">
+        <div class="input-label">Person 1</div>
+        <input class="text-input" id="name-a" placeholder="Your name" autocomplete="off" />
+      </div>
+      <div class="input-group">
+        <div class="input-label">Person 2</div>
+        <input class="text-input" id="name-b" placeholder="Their name" autocomplete="off" />
+      </div>
+      <button class="primary-btn" onclick="startApp()">Start tracking</button>
+    </div>
+  </div>
+
+  <!-- Main -->
+  <div id="main-view">
+    <header>
+      <div class="app-title">☕ Shout</div>
+      <div class="header-actions">
+        <button class="icon-btn" onclick="undoLast()" title="Undo last round" aria-label="Undo last round">↩</button>
+        <button class="icon-btn" onclick="confirmReset()" title="Reset" aria-label="Reset">⋯</button>
+      </div>
+    </header>
+
+    <div class="label">Who's up</div>
+    <div class="card" id="scoreboard"></div>
+
+    <div class="label">Log a round</div>
+    <div class="log-row" id="log-buttons"></div>
+
+    <div class="label">History</div>
+    <div class="card" id="history-panel"></div>
+  </div>
+
+</div>
+
+<!-- Undo toast -->
+<div class="toast" id="toast">
+  Round logged
+  <button class="toast-undo" onclick="undoLast()">UNDO</button>
+</div>
+
+<script>
+  const STORE_KEY = 'coffee_shout_v1';
+  let state = { names: ['', ''], counts: [0, 0], history: [] };
+  let toastTimer = null;
+
+  function save() {
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch(e) {}
+  }
+
+  function load() {
+    try {
+      const s = localStorage.getItem(STORE_KEY);
+      if (s) state = JSON.parse(s);
+    } catch(e) {}
+  }
+
+  function initials(name) {
+    return name.trim().split(/\s+/).map(w => w[0]).join('').toUpperCase().slice(0, 2);
+  }
+
+  function whoIsNext() {
+    if (state.counts[0] === state.counts[1]) return -1;
+    return state.counts[0] < state.counts[1] ? 0 : 1;
+  }
+
+  function relativeDate(ts) {
+    const now = Date.now();
+    const diff = now - ts;
+    const mins = Math.floor(diff / 60000);
+    const hours = Math.floor(diff / 3600000);
+    const days = Math.floor(diff / 86400000);
+    if (mins < 2) return 'just now';
+    if (mins < 60) return `${mins}m ago`;
+    if (hours < 24) return `${hours}h ago`;
+    if (days === 1) return 'yesterday';
+    if (days < 7) return `${days}d ago`;
+    return new Date(ts).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' });
+  }
+
+  function render() {
+    const next = whoIsNext();
+
+    // Scoreboard
+    document.getElementById('scoreboard').innerHTML = [0, 1].map(i => {
+      let badge;
+      if (next === -1) badge = '<span class="badge badge-even">all square</span>';
+      else if (next === i) badge = '<span class="badge badge-next">next up ☕</span>';
+      else badge = '<span class="badge badge-last">last shouted</span>';
+      const count = state.counts[i];
+      return `<div class="person-row">
+        <div class="avatar avatar-${i === 0 ? 'a' : 'b'}">${initials(state.names[i])}</div>
+        <div class="person-info">
+          <div class="person-name">${state.names[i]}</div>
+          <div class="person-count">${count === 0 ? 'No rounds yet' : count + ' round' + (count !== 1 ? 's' : '')}</div>
+        </div>
+        ${badge}
+      </div>`;
+    }).join('');
+
+    // Log buttons
+    document.getElementById('log-buttons').innerHTML = [0, 1].map(i =>
+      `<button class="log-btn${next === i || next === -1 ? ' primary' : ''}" onclick="logRound(${i})">
+        <span class="btn-icon">☕</span>
+        <span class="btn-label">${state.names[i]} shouted</span>
+      </button>`
+    ).join('');
+
+    // History
+    const panel = document.getElementById('history-panel');
+    if (state.history.length === 0) {
+      panel.innerHTML = '<div class="empty">No rounds logged yet</div>';
+    } else {
+      panel.innerHTML = state.history.slice(0, 10).map(h =>
+        `<div class="history-item">
+          <div class="history-dot dot-${h.who === 0 ? 'a' : 'b'}"></div>
+          <span><span class="history-who">${state.names[h.who]}</span> shouted</span>
+          <span class="history-when">${relativeDate(h.ts)}</span>
+        </div>`
+      ).join('');
+    }
+  }
+
+  function logRound(i) {
+    state.counts[i]++;
+    state.history.unshift({ who: i, ts: Date.now() });
+    save();
+    render();
+    showToast();
+  }
+
+  function undoLast() {
+    if (state.history.length === 0) return;
+    const last = state.history.shift();
+    state.counts[last.who] = Math.max(0, state.counts[last.who] - 1);
+    save();
+    render();
+    hideToast();
+  }
+
+  function showToast() {
+    const t = document.getElementById('toast');
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 4000);
+  }
+
+  function hideToast() {
+    clearTimeout(toastTimer);
+    document.getElementById('toast').classList.remove('show');
+  }
+
+  function startApp() {
+    const a = document.getElementById('name-a').value.trim();
+    const b = document.getElementById('name-b').value.trim();
+    if (!a || !b) { alert('Please enter both names.'); return; }
+    state = { names: [a, b], counts: [0, 0], history: [] };
+    save();
+    showMain();
+  }
+
+  function showMain() {
+    document.getElementById('setup-view').classList.remove('active');
+    document.getElementById('main-view').classList.add('active');
+    render();
+  }
+
+  function confirmReset() {
+    if (confirm('Reset everything and start over?')) {
+      state = { names: ['', ''], counts: [0, 0], history: [] };
+      save();
+      document.getElementById('main-view').classList.remove('active');
+      document.getElementById('setup-view').classList.add('active');
+      document.getElementById('name-a').value = '';
+      document.getElementById('name-b').value = '';
+    }
+  }
+
+  // Boot
+  load();
+  if (state.names[0] && state.names[1]) {
+    showMain();
+  } else {
+    document.getElementById('setup-view').classList.add('active');
+  }
+
+  // Service worker
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  }
+</script>
+</body>
+</html>
