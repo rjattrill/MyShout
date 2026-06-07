@@ -1,5 +1,5 @@
-const CACHE = 'coffee-shout-v1';
-const ASSETS = ['/', '/index.html', '/manifest.json', '/icons/icon-192.png', '/icons/icon-512.png'];
+const CACHE = 'coffee-shout-v2';
+const ASSETS = ['/MyShout/', '/MyShout/index.html', '/MyShout/manifest.json', '/MyShout/icons/icon-192.png', '/MyShout/icons/icon-512.png'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)));
