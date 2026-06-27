@@ -247,14 +247,14 @@
 
     .empty { text-align: center; padding: 24px 16px; color: var(--text3); font-size: 14px; }
 
-    /* Setup screen */
-    .setup-wrap {
+    /* Groups / Setup screen */
+    .groups-wrap {
       flex: 1;
       display: flex;
       flex-direction: column;
-      justify-content: center;
       gap: 0;
       padding-bottom: 40px;
+      padding-top: 40px;
     }
 
     .setup-title {
@@ -311,6 +311,55 @@
 
     .primary-btn:active { opacity: 0.85; transform: scale(0.98); }
 
+    .ghost-btn {
+      width: 100%;
+      padding: 16px;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text2);
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 8px;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .ghost-btn:active { background: var(--surface2); }
+
+    .group-card {
+      display: flex;
+      align-items: center;
+      padding: 16px;
+      border-radius: var(--radius);
+      background: var(--surface);
+      border: 0.5px solid var(--border2);
+      margin-bottom: 10px;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .group-card:active { background: var(--surface2); }
+
+    .group-card-info { flex: 1; min-width: 0; }
+    .group-card-name { font-size: 16px; font-weight: 600; }
+    .group-card-people { font-size: 13px; color: var(--text2); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    .group-card-badge { flex-shrink: 0; margin: 0 8px; }
+
+    .group-card-del {
+      background: none;
+      border: none;
+      color: var(--text3);
+      font-size: 18px;
+      cursor: pointer;
+      padding: 4px;
+      flex-shrink: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .group-card-del:active { color: var(--text); }
+
     /* Undo toast */
     .toast {
       position: fixed;
@@ -347,35 +396,50 @@
       .toast-undo { color: var(--amber-text); }
     }
 
-    #setup-view, #main-view { display: none; }
-    #setup-view.active, #main-view.active { display: flex; flex-direction: column; flex: 1; }
+    #groups-view, #main-view { display: none; }
+    #groups-view.active, #main-view.active { display: flex; flex-direction: column; flex: 1; }
   </style>
 </head>
 <body>
 <div class="app">
 
-  <!-- Setup -->
-  <div id="setup-view">
-    <div class="setup-wrap">
+  <!-- Groups -->
+  <div id="groups-view">
+    <div class="groups-wrap">
       <div style="font-size:40px; margin-bottom:16px;">☕</div>
       <h1 class="setup-title">My Shout</h1>
-      <p class="setup-sub">Track whose turn it is to shout. Enter the two people in your coffee group.</p>
-      <div class="input-group">
-        <div class="input-label">Person 1</div>
-        <input class="text-input" id="name-a" placeholder="Your name" autocomplete="off" />
+      <p class="setup-sub" id="groups-sub">Select a group to track, or create a new one.</p>
+
+      <div id="group-list"></div>
+
+      <div id="new-group-form" style="display:none">
+        <div class="input-group">
+          <div class="input-label">Group Name</div>
+          <input class="text-input" id="group-name-input" placeholder="e.g. Coffee Team" autocomplete="off" />
+        </div>
+        <div class="input-group">
+          <div class="input-label">Person 1</div>
+          <input class="text-input" id="name-a-input" placeholder="Your name" autocomplete="off" />
+        </div>
+        <div class="input-group">
+          <div class="input-label">Person 2</div>
+          <input class="text-input" id="name-b-input" placeholder="Their name" autocomplete="off" />
+        </div>
+        <button class="primary-btn" onclick="createGroup()">Create group</button>
+        <button class="ghost-btn" onclick="hideNewGroupForm()">Cancel</button>
       </div>
-      <div class="input-group">
-        <div class="input-label">Person 2</div>
-        <input class="text-input" id="name-b" placeholder="Their name" autocomplete="off" />
-      </div>
-      <button class="primary-btn" onclick="startApp()">Start tracking</button>
+
+      <button class="primary-btn" id="show-form-btn" onclick="showNewGroupForm()">+ New Group</button>
     </div>
   </div>
 
   <!-- Main -->
   <div id="main-view">
     <header>
-      <div class="app-title">☕ My Shout</div>
+      <div style="display:flex; align-items:center; gap:8px; min-width:0">
+        <button class="icon-btn" onclick="showGroupList()" title="All groups" aria-label="All groups">←</button>
+        <span class="app-title" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis">☕ <span id="group-name-display"></span></span>
+      </div>
       <div class="header-actions">
         <button class="icon-btn" onclick="undoLast()" title="Undo last round" aria-label="Undo last round">↩</button>
         <button class="icon-btn" onclick="confirmReset()" title="Reset" aria-label="Reset">⋯</button>
@@ -401,9 +465,13 @@
 </div>
 
 <script>
-  const STORE_KEY = 'coffee_shout_v1';
-  let state = { names: ['', ''], counts: [0, 0], history: [] };
+  const STORE_KEY = 'coffee_shout_v2';
+  let state = { groups: {}, activeGroupId: null };
   let toastTimer = null;
+
+  function group() {
+    return state.groups[state.activeGroupId];
+  }
 
   function save() {
     try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch(e) {}
@@ -411,9 +479,27 @@
 
   function load() {
     try {
-      const s = localStorage.getItem(STORE_KEY);
-      if (s) state = JSON.parse(s);
+      const raw = localStorage.getItem(STORE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed.groups) { state = parsed; return; }
+      }
+      // Migrate from v1
+      const v1 = localStorage.getItem('coffee_shout_v1');
+      if (v1) {
+        const old = JSON.parse(v1);
+        if (old.names && old.names[0] && old.names[1]) {
+          const gid = crypto.randomUUID();
+          state = {
+            groups: { [gid]: { id: gid, name: 'My Group', names: old.names, counts: old.counts, history: old.history } },
+            activeGroupId: gid
+          };
+          save();
+          return;
+        }
+      }
     } catch(e) {}
+    state = { groups: {}, activeGroupId: null };
   }
 
   function initials(name) {
@@ -421,8 +507,10 @@
   }
 
   function whoIsNext() {
-    if (state.counts[0] === state.counts[1]) return -1;
-    return state.counts[0] < state.counts[1] ? 0 : 1;
+    const g = group();
+    if (!g) return -1;
+    if (g.counts[0] === g.counts[1]) return -1;
+    return g.counts[0] < g.counts[1] ? 0 : 1;
   }
 
   function relativeDate(ts) {
@@ -440,7 +528,11 @@
   }
 
   function render() {
+    const g = group();
+    if (!g) return;
     const next = whoIsNext();
+
+    document.getElementById('group-name-display').textContent = g.name;
 
     // Scoreboard
     document.getElementById('scoreboard').innerHTML = [0, 1].map(i => {
@@ -448,11 +540,11 @@
       if (next === -1) badge = '<span class="badge badge-even">all square</span>';
       else if (next === i) badge = '<span class="badge badge-next">next up ☕</span>';
       else badge = '<span class="badge badge-last">last shouted</span>';
-      const count = state.counts[i];
+      const count = g.counts[i];
       return `<div class="person-row">
-        <div class="avatar avatar-${i === 0 ? 'a' : 'b'}">${initials(state.names[i])}</div>
+        <div class="avatar avatar-${i === 0 ? 'a' : 'b'}">${initials(g.names[i])}</div>
         <div class="person-info">
-          <div class="person-name">${state.names[i]}</div>
+          <div class="person-name">${g.names[i]}</div>
           <div class="person-count">${count === 0 ? 'No rounds yet' : count + ' round' + (count !== 1 ? 's' : '')}</div>
         </div>
         ${badge}
@@ -463,19 +555,19 @@
     document.getElementById('log-buttons').innerHTML = [0, 1].map(i =>
       `<button class="log-btn${next === i || next === -1 ? ' primary' : ''}" onclick="logRound(${i})">
         <span class="btn-icon">☕</span>
-        <span class="btn-label">${state.names[i]} shouted</span>
+        <span class="btn-label">${g.names[i]} shouted</span>
       </button>`
     ).join('');
 
     // History
     const panel = document.getElementById('history-panel');
-    if (state.history.length === 0) {
+    if (g.history.length === 0) {
       panel.innerHTML = '<div class="empty">No rounds logged yet</div>';
     } else {
-      panel.innerHTML = state.history.slice(0, 10).map(h =>
+      panel.innerHTML = g.history.slice(0, 10).map(h =>
         `<div class="history-item">
           <div class="history-dot dot-${h.who === 0 ? 'a' : 'b'}"></div>
-          <span><span class="history-who">${state.names[h.who]}</span> shouted</span>
+          <span><span class="history-who">${g.names[h.who]}</span> shouted</span>
           <span class="history-when">${relativeDate(h.ts)}</span>
         </div>`
       ).join('');
@@ -483,17 +575,21 @@
   }
 
   function logRound(i) {
-    state.counts[i]++;
-    state.history.unshift({ who: i, ts: Date.now() });
+    const g = group();
+    if (!g) return;
+    g.counts[i]++;
+    g.history.unshift({ who: i, ts: Date.now() });
     save();
     render();
     showToast();
   }
 
   function undoLast() {
-    if (state.history.length === 0) return;
-    const last = state.history.shift();
-    state.counts[last.who] = Math.max(0, state.counts[last.who] - 1);
+    const g = group();
+    if (!g) return;
+    if (g.history.length === 0) return;
+    const last = g.history.shift();
+    g.counts[last.who] = Math.max(0, g.counts[last.who] - 1);
     save();
     render();
     hideToast();
@@ -511,38 +607,131 @@
     document.getElementById('toast').classList.remove('show');
   }
 
-  function startApp() {
-    const a = document.getElementById('name-a').value.trim();
-    const b = document.getElementById('name-b').value.trim();
-    if (!a || !b) { alert('Please enter both names.'); return; }
-    state = { names: [a, b], counts: [0, 0], history: [] };
+  // Group management
+
+  function createGroup() {
+    const gn = document.getElementById('group-name-input').value.trim();
+    const a = document.getElementById('name-a-input').value.trim();
+    const b = document.getElementById('name-b-input').value.trim();
+    if (!gn || !a || !b) { alert('Please fill in all fields.'); return; }
+    const gid = crypto.randomUUID();
+    state.groups[gid] = { id: gid, name: gn, names: [a, b], counts: [0, 0], history: [] };
+    state.activeGroupId = gid;
+    save();
+    document.getElementById('group-name-input').value = '';
+    document.getElementById('name-a-input').value = '';
+    document.getElementById('name-b-input').value = '';
+    showMain();
+  }
+
+  function switchGroup(gid) {
+    state.activeGroupId = gid;
     save();
     showMain();
   }
 
+  function deleteGroup(gid) {
+    if (!confirm('Delete this group and all its data?')) return;
+    delete state.groups[gid];
+    const keys = Object.keys(state.groups);
+    state.activeGroupId = keys.length > 0 ? keys[0] : null;
+    save();
+    if (state.activeGroupId) {
+      showMain();
+    } else {
+      showGroupList();
+    }
+  }
+
+  function showNewGroupForm() {
+    document.getElementById('show-form-btn').style.display = 'none';
+    document.getElementById('group-list').style.display = 'none';
+    document.getElementById('new-group-form').style.display = 'block';
+    document.getElementById('groups-sub').textContent = 'Create a new group to get started.';
+    document.getElementById('group-name-input').focus();
+  }
+
+  function hideNewGroupForm() {
+    document.getElementById('new-group-form').style.display = 'none';
+    const keys = Object.keys(state.groups);
+    if (keys.length > 0) {
+      document.getElementById('group-list').style.display = '';
+      document.getElementById('show-form-btn').style.display = 'block';
+      document.getElementById('groups-sub').textContent = 'Select a group to track, or create a new one.';
+    } else {
+      document.getElementById('show-form-btn').style.display = 'none';
+      document.getElementById('group-list').style.display = 'none';
+      document.getElementById('new-group-form').style.display = 'block';
+      document.getElementById('groups-sub').textContent = 'Create your first group to start tracking shouts.';
+    }
+  }
+
+  function renderGroupList() {
+    const container = document.getElementById('group-list');
+    const keys = Object.keys(state.groups);
+
+    if (keys.length === 0) {
+      document.getElementById('groups-sub').textContent = 'Create your first group to start tracking shouts.';
+      container.innerHTML = '';
+      container.style.display = 'none';
+      document.getElementById('show-form-btn').style.display = 'none';
+      document.getElementById('new-group-form').style.display = 'block';
+      document.getElementById('group-name-input').focus();
+      return;
+    }
+
+    document.getElementById('groups-sub').textContent = 'Select a group to track, or create a new one.';
+    container.style.display = '';
+    document.getElementById('show-form-btn').style.display = 'block';
+    document.getElementById('new-group-form').style.display = 'none';
+
+    container.innerHTML = keys.map(gid => {
+      const g = state.groups[gid];
+      const n = g.counts[0] === g.counts[1] ? -1 : (g.counts[0] < g.counts[1] ? 0 : 1);
+      let badge;
+      if (n === -1) badge = '<span class="badge badge-even">all square</span>';
+      else badge = `<span class="badge badge-next">${initials(g.names[n])} up</span>`;
+      return `<div class="group-card" onclick="switchGroup('${gid}')">
+        <div class="group-card-info">
+          <div class="group-card-name">${g.name}</div>
+          <div class="group-card-people">${g.names[0]} & ${g.names[1]}</div>
+        </div>
+        <div class="group-card-badge">${badge}</div>
+        <button class="group-card-del" onclick="event.stopPropagation(); deleteGroup('${gid}')" title="Delete group">✕</button>
+      </div>`;
+    }).join('');
+  }
+
+  function showGroupList() {
+    document.getElementById('main-view').classList.remove('active');
+    document.getElementById('groups-view').classList.add('active');
+    renderGroupList();
+  }
+
   function showMain() {
-    document.getElementById('setup-view').classList.remove('active');
+    document.getElementById('groups-view').classList.remove('active');
     document.getElementById('main-view').classList.add('active');
     render();
   }
 
   function confirmReset() {
-    if (confirm('Reset everything and start over?')) {
-      state = { names: ['', ''], counts: [0, 0], history: [] };
+    const g = group();
+    if (!g) return;
+    if (confirm(`Reset all shout data for "${g.name}"?`)) {
+      g.counts = [0, 0];
+      g.history = [];
       save();
-      document.getElementById('main-view').classList.remove('active');
-      document.getElementById('setup-view').classList.add('active');
-      document.getElementById('name-a').value = '';
-      document.getElementById('name-b').value = '';
+      render();
     }
   }
 
   // Boot
   load();
-  if (state.names[0] && state.names[1]) {
+  if (state.activeGroupId && group()) {
     showMain();
   } else {
-    document.getElementById('setup-view').classList.add('active');
+    document.getElementById('groups-view').classList.add('active');
+    renderGroupList();
   }
 
   // Service worker
