@@ -396,6 +396,53 @@
       .toast-undo { color: var(--amber-text); }
     }
 
+    /* Menu */
+    .menu-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 99;
+      display: none;
+      background: transparent;
+    }
+    .menu-overlay.show { display: block; }
+
+    .menu {
+      position: absolute;
+      top: calc(100% - 4px);
+      right: 0;
+      background: var(--surface);
+      border: 0.5px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      z-index: 100;
+      min-width: 200px;
+      display: none;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    }
+    .menu.show { display: block; }
+
+    .menu-item {
+      display: block;
+      width: 100%;
+      padding: 14px 16px;
+      border: none;
+      border-bottom: 0.5px solid var(--border2);
+      background: none;
+      text-align: left;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text);
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .menu-item:last-child { border-bottom: none; }
+    .menu-item:active { background: var(--surface2); }
+    .menu-item.danger { color: #e04040; }
+
+    @media (prefers-color-scheme: dark) {
+      .menu-item.danger { color: #ff6b6b; }
+    }
+
     #groups-view, #main-view { display: none; }
     #groups-view.active, #main-view.active { display: flex; flex-direction: column; flex: 1; }
   </style>
@@ -435,14 +482,18 @@
 
   <!-- Main -->
   <div id="main-view">
-    <header>
+    <header style="position:relative">
       <div style="display:flex; align-items:center; gap:8px; min-width:0">
         <button class="icon-btn" onclick="showGroupList()" title="All groups" aria-label="All groups">←</button>
         <span class="app-title" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis">☕ <span id="group-name-display"></span></span>
       </div>
       <div class="header-actions">
         <button class="icon-btn" onclick="undoLast()" title="Undo last round" aria-label="Undo last round">↩</button>
-        <button class="icon-btn" onclick="confirmReset()" title="Reset" aria-label="Reset">⋯</button>
+        <button class="icon-btn" onclick="toggleMenu()" title="Menu" aria-label="Menu">⋯</button>
+      </div>
+      <div class="menu" id="group-menu">
+        <button class="menu-item" onclick="renameGroup()">Rename group</button>
+        <button class="menu-item danger" onclick="confirmReset()">Reset all shout data</button>
       </div>
     </header>
 
@@ -463,6 +514,9 @@
   Round logged
   <button class="toast-undo" onclick="undoLast()">UNDO</button>
 </div>
+
+<!-- Menu overlay -->
+<div class="menu-overlay" id="menu-overlay" onclick="hideMenu()"></div>
 
 <script>
   const STORE_KEY = 'coffee_shout_v2';
@@ -714,7 +768,32 @@
     render();
   }
 
+  function toggleMenu() {
+    const menu = document.getElementById('group-menu');
+    const overlay = document.getElementById('menu-overlay');
+    const showing = menu.classList.toggle('show');
+    overlay.classList.toggle('show', showing);
+  }
+
+  function hideMenu() {
+    document.getElementById('group-menu').classList.remove('show');
+    document.getElementById('menu-overlay').classList.remove('show');
+  }
+
+  function renameGroup() {
+    hideMenu();
+    const g = group();
+    if (!g) return;
+    const name = prompt('Rename group', g.name);
+    if (name && name.trim() && name.trim() !== g.name) {
+      g.name = name.trim();
+      save();
+      render();
+    }
+  }
+
   function confirmReset() {
+    hideMenu();
     const g = group();
     if (!g) return;
     if (confirm(`Reset all shout data for "${g.name}"?`)) {
