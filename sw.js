@@ -1,4 +1,4 @@
-const CACHE = 'MyShout-v3.2';
+const CACHE = 'MyShout-v3.3';
 const ASSETS = ['/MyShout/', '/MyShout/index.html', '/MyShout/manifest.json', '/MyShout/icons/icon-192.png', '/MyShout/icons/icon-512.png'];
 
 self.addEventListener('install', e => {

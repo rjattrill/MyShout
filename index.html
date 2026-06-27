@@ -443,6 +443,89 @@
       .menu-item.danger { color: #ff6b6b; }
     }
 
+    /* Modal */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 200;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s;
+      padding: 24px;
+    }
+    .modal-overlay.show {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    .modal {
+      background: var(--surface);
+      border-radius: var(--radius);
+      padding: 24px;
+      max-width: 320px;
+      width: 100%;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+    }
+
+    .modal-title {
+      font-size: 17px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: var(--text);
+    }
+
+    .modal-body {
+      font-size: 14px;
+      color: var(--text2);
+      line-height: 1.5;
+      margin-bottom: 20px;
+    }
+
+    .modal-input {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--text);
+      font-size: 16px;
+      outline: none;
+      margin-bottom: 20px;
+      box-sizing: border-box;
+    }
+    .modal-input:focus { border-color: var(--accent); }
+
+    .modal-actions {
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+    }
+
+    .modal-btn {
+      padding: 10px 20px;
+      border-radius: var(--radius-sm);
+      border: none;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .modal-btn:active { opacity: 0.8; }
+
+    .modal-ok {
+      background: var(--accent);
+      color: var(--accent-text);
+    }
+
+    .modal-cancel {
+      background: var(--surface2);
+      color: var(--text2);
+    }
+
     #groups-view, #main-view { display: none; }
     #groups-view.active, #main-view.active { display: flex; flex-direction: column; flex: 1; }
   </style>
@@ -517,6 +600,19 @@
 
 <!-- Menu overlay -->
 <div class="menu-overlay" id="menu-overlay" onclick="hideMenu()"></div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal">
+    <div class="modal-title" id="modal-title"></div>
+    <div class="modal-body" id="modal-body"></div>
+    <input class="modal-input" id="modal-input" style="display:none" placeholder="" autocomplete="off" />
+    <div class="modal-actions">
+      <button class="modal-btn modal-cancel" id="modal-cancel" style="display:none">Cancel</button>
+      <button class="modal-btn modal-ok" id="modal-ok">OK</button>
+    </div>
+  </div>
+</div>
 
 <script>
   const STORE_KEY = 'coffee_shout_v2';
@@ -661,13 +757,52 @@
     document.getElementById('toast').classList.remove('show');
   }
 
+  // Modal
+
+  function showModal({ title, body, input, value, cancel }) {
+    return new Promise(resolve => {
+      const overlay = document.getElementById('modal-overlay');
+      document.getElementById('modal-title').textContent = title;
+      document.getElementById('modal-body').textContent = body;
+      const inputEl = document.getElementById('modal-input');
+      if (input) {
+        inputEl.style.display = 'block';
+        inputEl.value = value || '';
+        setTimeout(() => inputEl.focus(), 50);
+      } else {
+        inputEl.style.display = 'none';
+      }
+      document.getElementById('modal-cancel').style.display = cancel ? 'inline-block' : 'none';
+      overlay.classList.add('show');
+
+      function done(result) {
+        overlay.classList.remove('show');
+        document.getElementById('modal-ok').onclick = null;
+        document.getElementById('modal-cancel').onclick = null;
+        inputEl.onkeydown = null;
+        resolve(result);
+      }
+
+      document.getElementById('modal-ok').onclick = () => done(input ? inputEl.value : true);
+      if (cancel) {
+        document.getElementById('modal-cancel').onclick = () => done(null);
+      }
+      if (input) {
+        inputEl.onkeydown = e => {
+          if (e.key === 'Enter') document.getElementById('modal-ok').click();
+          if (e.key === 'Escape' && cancel) document.getElementById('modal-cancel').click();
+        };
+      }
+    });
+  }
+
   // Group management
 
-  function createGroup() {
+  async function createGroup() {
     const gn = document.getElementById('group-name-input').value.trim();
     const a = document.getElementById('name-a-input').value.trim();
     const b = document.getElementById('name-b-input').value.trim();
-    if (!gn || !a || !b) { alert('Please fill in all fields.'); return; }
+    if (!gn || !a || !b) { await showModal({ title: 'My Shout', body: 'Please fill in all fields.', cancel: false }); return; }
     const gid = crypto.randomUUID();
     state.groups[gid] = { id: gid, name: gn, names: [a, b], counts: [0, 0], history: [] };
     state.activeGroupId = gid;
@@ -684,8 +819,9 @@
     showMain();
   }
 
-  function deleteGroup(gid) {
-    if (!confirm('Delete this group and all its data?')) return;
+  async function deleteGroup(gid) {
+    const ok = await showModal({ title: 'My Shout', body: 'Delete this group and all its data?', cancel: true });
+    if (!ok) return;
     delete state.groups[gid];
     const keys = Object.keys(state.groups);
     state.activeGroupId = keys.length > 0 ? keys[0] : null;
@@ -780,11 +916,11 @@
     document.getElementById('menu-overlay').classList.remove('show');
   }
 
-  function renameGroup() {
+  async function renameGroup() {
     hideMenu();
     const g = group();
     if (!g) return;
-    const name = prompt('Rename group', g.name);
+    const name = await showModal({ title: 'My Shout', body: 'Rename group', input: true, value: g.name, cancel: true });
     if (name && name.trim() && name.trim() !== g.name) {
       g.name = name.trim();
       save();
@@ -792,16 +928,16 @@
     }
   }
 
-  function confirmReset() {
+  async function confirmReset() {
     hideMenu();
     const g = group();
     if (!g) return;
-    if (confirm(`Reset all shout data for "${g.name}"?`)) {
-      g.counts = [0, 0];
-      g.history = [];
-      save();
-      render();
-    }
+    const ok = await showModal({ title: 'My Shout', body: `Reset all shout data for "${g.name}"?`, cancel: true });
+    if (!ok) return;
+    g.counts = [0, 0];
+    g.history = [];
+    save();
+    render();
   }
 
   // Boot
