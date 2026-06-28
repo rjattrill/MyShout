@@ -102,7 +102,7 @@
       align-items: center;
       justify-content: center;
       cursor: pointer;
-      font-size: 16px;
+      font-size: 22px;
       color: var(--text2);
       -webkit-tap-highlight-color: transparent;
     }
@@ -580,16 +580,16 @@
 
       <div id="new-group-form" style="display:none">
         <div class="input-group">
-          <div class="input-label">Group Name</div>
-          <input class="text-input" id="group-name-input" placeholder="e.g. Coffee Team" autocomplete="off" />
-        </div>
-        <div class="input-group">
           <div class="input-label">Person 1</div>
-          <input class="text-input" id="name-a-input" placeholder="Your name" autocomplete="off" />
+          <input class="text-input" id="name-a-input" placeholder="Your name" autocomplete="off" oninput="autoName()" />
         </div>
         <div class="input-group">
           <div class="input-label">Person 2</div>
-          <input class="text-input" id="name-b-input" placeholder="Their name" autocomplete="off" />
+          <input class="text-input" id="name-b-input" placeholder="Their name" autocomplete="off" oninput="autoName()" />
+        </div>
+        <div class="input-group">
+          <div class="input-label">Group Name</div>
+          <input class="text-input" id="group-name-input" placeholder="e.g. Coffee Team" autocomplete="off" />
         </div>
         <button class="primary-btn" onclick="createGroup()">Create group</button>
         <button class="ghost-btn" onclick="hideNewGroupForm()">Cancel</button>
@@ -835,6 +835,14 @@
 
   // Group management
 
+  function autoName() {
+    const a = document.getElementById('name-a-input').value.trim();
+    const b = document.getElementById('name-b-input').value.trim();
+    if (a && b) {
+      document.getElementById('group-name-input').value = `${a} & ${b}`;
+    }
+  }
+
   async function createGroup() {
     const gn = document.getElementById('group-name-input').value.trim();
     const a = document.getElementById('name-a-input').value.trim();
@@ -904,7 +912,7 @@
       container.style.display = 'none';
       document.getElementById('show-form-btn').style.display = 'none';
       document.getElementById('new-group-form').style.display = 'block';
-      document.getElementById('group-name-input').focus();
+    document.getElementById('name-a-input').focus();
       return;
     }
 
