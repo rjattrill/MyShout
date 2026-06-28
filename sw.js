@@ -1,4 +1,4 @@
-const CACHE = 'MyShout-v3.3';
+const CACHE = 'MyShout-v4.0';
 const ASSETS = ['/MyShout/', '/MyShout/index.html', '/MyShout/manifest.json', '/MyShout/icons/icon-192.png', '/MyShout/icons/icon-512.png'];
 
 self.addEventListener('install', e => {
@@ -14,7 +14,33 @@ self.addEventListener('activate', e => {
 });
 
 self.addEventListener('fetch', e => {
+  const req = e.request;
+
+  // Network-first for navigation (HTML) requests so updates show up immediately.
+  // Falls back to cache when offline.
+  if (req.mode === 'navigate' || (req.method === 'GET' && req.headers.get('accept')?.includes('text/html'))) {
+    e.respondWith(
+      fetch(req)
+        .then(res => {
+          const copy = res.clone();
+          caches.open(CACHE).then(c => c.put(req, copy));
+          return res;
+        })
+        .catch(() => caches.match(req))
+    );
+    return;
+  }
+
+  // Cache-first for static assets (icons, manifest, etc.), with network fallback
+  // and silent re-caching so they stay fresh without needing a version bump.
   e.respondWith(
-    caches.match(e.request).then(r => r || fetch(e.request))
+    caches.match(req).then(cached => {
+      const networkFetch = fetch(req).then(res => {
+        const copy = res.clone();
+        caches.open(CACHE).then(c => c.put(req, copy));
+        return res;
+      }).catch(() => cached);
+      return cached || networkFetch;
+    })
   );
 });
