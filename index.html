@@ -105,9 +105,11 @@
       font-size: 28px;
       color: var(--text2);
       line-height: 1;
-      padding-bottom: 8px;   /* nudges glyph up to optically center it */
       -webkit-tap-highlight-color: transparent;
-}
+    }
+    .icon-btn.icon-btn-nudge-up {
+      padding-bottom: 8px;   /* nudges glyph up to optically center it */
+    }
 
     .icon-btn:active { transform: scale(0.93); background: var(--surface2); }
 
@@ -605,11 +607,11 @@
   <div id="main-view">
     <header style="position:relative">
       <div style="display:flex; align-items:center; gap:8px; min-width:0">
-        <button class="icon-btn" onclick="showGroupList()" title="All groups" aria-label="All groups">←</button>
+        <button class="icon-btn icon-btn-nudge-up" onclick="showGroupList()" title="All groups" aria-label="All groups">←</button>
         <span class="app-title" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis">☕ <span id="group-name-display"></span></span>
       </div>
       <div class="header-actions">
-        <button class="icon-btn" onclick="undoLast()" title="Undo last round" aria-label="Undo last round">↩</button>
+        <button class="icon-btn icon-btn-nudge-up" onclick="undoLast()" title="Undo last round" aria-label="Undo last round">↩</button>
         <button class="icon-btn" onclick="toggleMenu()" title="Menu" aria-label="Menu">⋯</button>
       </div>
       <div class="menu" id="group-menu">
